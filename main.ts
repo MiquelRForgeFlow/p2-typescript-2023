@@ -420,8 +420,18 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             <td class="value abilities-text">${ability.description}</td>
           </tr>`;
       })
-      .join('\n'); 
-  
+      .join('\n');
+    const pastAbilitiesTableRows = pokemon.pastAbilities
+      .map(ability => {
+        const hiddenTag = ability.is_hidden ? `<span class="hidden-ability">hidden</span>` : '';
+        const generationTag = ability.generation ? `<span class="generation-ability">until ${ability.generation}</span>` : '';
+        return `
+          <tr>
+            <td class="attribute abilities-text">${ability.name.charAt(0).toUpperCase() + ability.name.slice(1)}: ${hiddenTag} ${generationTag}</td>
+            <td class="value abilities-text">${ability.description}</td>
+          </tr>`;
+      })
+      .join('\n');
     const getStatBar = (value: number, maxValue: number) => {
       const percentage = Math.round((value / maxValue) * 100);
       const greenThreshold = 35;
@@ -542,6 +552,10 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
               <th colspan="2" class="section-title-cell">Pokémon Abilities</th>
             </tr>
             ${abilitiesTableRows}
+            <tr style="${pokemon.pastAbilities.length > 0 ? '' : 'display: none;'}">
+              <th colspan="2" class="section-title-cell">Pokémon Old Abilities</th>
+            </tr>
+            ${pokemon.pastAbilities.length > 0 ? pastAbilitiesTableRows : ''}
           </table>
           <table>
             <tr>
