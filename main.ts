@@ -194,16 +194,21 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             const totalWinner2 = total2 > total1 ? 'winner' : total2 < total1 ? 'loser' : '';
             tableRows += \`<tr class="total-row"><td class="\${totalWinner1}">\${total1}</td><td>TOTAL (BST)</td><td class="\${totalWinner2}">\${total2}</td></tr>\`;
             
+            const cry1 = pokemon1.cries?.latest || '';
+            const cry2 = pokemon2.cries?.latest || '';
+
             compareResults.innerHTML = \`
               <div class="compare-header">
                 <div class="compare-pokemon">
                   <img src="\${pokemon1.sprites.other['official-artwork'].front_default}" alt="\${pokemon1.name}">
                   <h3>\${pokemon1.name.charAt(0).toUpperCase() + pokemon1.name.slice(1)}</h3>
+                  \${cry1 ? \`<audio id="compare-cry-1" src="\${cry1}"></audio><button class="cry-button" onclick="const a=document.getElementById('compare-cry-1');a.currentTime=0;a.play();">🔊 Cry</button>\` : ''}
                 </div>
                 <div class="vs">VS</div>
                 <div class="compare-pokemon">
                   <img src="\${pokemon2.sprites.other['official-artwork'].front_default}" alt="\${pokemon2.name}">
                   <h3>\${pokemon2.name.charAt(0).toUpperCase() + pokemon2.name.slice(1)}</h3>
+                  \${cry2 ? \`<audio id="compare-cry-2" src="\${cry2}"></audio><button class="cry-button" onclick="const a=document.getElementById('compare-cry-2');a.currentTime=0;a.play();">🔊 Cry</button>\` : ''}
                 </div>
               </div>
               <table class="compare-table">
