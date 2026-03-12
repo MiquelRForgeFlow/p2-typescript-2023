@@ -133,6 +133,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             } else {
               compareBar.style.display = "none";
               compareList = [];
+              document.querySelectorAll(".selected-compare").forEach(el => el.classList.remove("selected-compare"));
               updateCompareBar();
             }
           });
@@ -185,7 +186,8 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
               const v2 = stats2[stat] || 0;
               const winner1 = v1 > v2 ? 'winner' : v1 < v2 ? 'loser' : '';
               const winner2 = v2 > v1 ? 'winner' : v2 < v1 ? 'loser' : '';
-              return \`<tr><td class="\${winner1}">\${v1}</td><td>\${stat.toUpperCase()}</td><td class="\${winner2}">\${v2}</td></tr>\`;
+              const statLabel = stat === 'hp' ? 'HP' : stat.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              return \`<tr><td class="\${winner1}">\${v1}</td><td>\${statLabel}</td><td class="\${winner2}">\${v2}</td></tr>\`;
             }).join('');
             
             const totalWinner1 = total1 > total2 ? 'winner' : total1 < total2 ? 'loser' : '';
@@ -205,7 +207,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
                 </div>
               </div>
               <table class="compare-table">
-                <thead><tr><th>\${pokemon1.name}</th><th>Stat</th><th>\${pokemon2.name}</th></tr></thead>
+                <thead><tr><th>\${pokemon1.name.charAt(0).toUpperCase() + pokemon1.name.slice(1)}</th><th>Stat</th><th>\${pokemon2.name.charAt(0).toUpperCase() + pokemon2.name.slice(1)}</th></tr></thead>
                 <tbody>\${tableRows}</tbody>
               </table>
             \`;
