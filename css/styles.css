@@ -140,6 +140,13 @@ li {
   font-size: 12px;
 }
 
+/* Second slot mirroring the first pick: a faded hint that Go compares the
+   Pokémon with itself. */
+.compare-slot-mirror {
+  opacity: 0.5;
+  font-style: italic;
+}
+
 .vs-text {
   font-weight: bold;
   font-size: 11px;
@@ -200,13 +207,24 @@ li {
 .compare-header {
   display: flex;
   justify-content: center;
-  align-items: center;
+  /* Stretch so both columns share the taller one's height; the Cry button is
+     then pushed to the bottom of each column so the two Cry buttons line up
+     even when only one Pokémon has a Form selector. */
+  align-items: stretch;
   gap: 20px;
   margin-bottom: 20px;
 }
 
 .compare-pokemon {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Bottom-align the Cry button within its (equal-height) column. */
+.compare-pokemon .compare-cry {
+  margin-top: auto;
 }
 
 .compare-pokemon img {
@@ -240,6 +258,27 @@ li {
   font-size: 24px;
   font-weight: bold;
   color: var(--header-bg);
+  /* Don't stretch with the columns; keep VS centered against the 120px sprites. */
+  align-self: flex-start;
+  margin-top: 45px;
+}
+
+.compare-pokemon .version-select {
+  font-size: 16px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  width: auto;
+  max-width: 100%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.compare-pokemon .version-select:focus {
+  outline: none;
+  border-color: var(--header-bg);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
 .compare-table {
@@ -376,6 +415,10 @@ li {
 @media screen and (max-width: 600px) {
   .compare-header {
     flex-direction: column;
+    align-items: center;
+  }
+  .vs {
+    margin-top: 0;
   }
   .compare-pokemon img {
     width: 80px;
