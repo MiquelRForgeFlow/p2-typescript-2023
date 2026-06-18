@@ -429,22 +429,20 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
       })
       .join('\n'); 
   
-    const getStatBar = (value: number, maxValue: number) => {
-      const percentage = Math.round((value / maxValue) * 100);
-      const greenThreshold = 35;
-      const yellowThreshold = 20;
-      let backgroundColor;
-      if (percentage >= greenThreshold) {
-        backgroundColor = 'limegreen';
-      } else if (percentage >= yellowThreshold) {
-        backgroundColor = 'gold';
-      } else {
-        backgroundColor = 'tomato';
-      }
+    const getStatBar = (value: number, sumValues: number, maxValue: number) => {
+      const absolute_percentage = Math.round((value / maxValue) * 100);
+      const relative_percentage = Math.round((value / sumValues) * 100);
+
+      const absColor = absolute_percentage >= 35 ? 'limegreen' : absolute_percentage >= 20 ? 'gold' : 'tomato';
+      const relColor = relative_percentage >= 20 ? 'limegreen' : relative_percentage >= 11 ? 'gold' : 'tomato';
+
       return `
         <div class="stat-bar-container">
-          <div class="stat-bar">
-            <div class="stat-value" style="width: ${percentage}%; background-color: ${backgroundColor};"></div>
+          <div class="stat-bar" title="Absolute (vs 255)">
+            <div class="stat-value" style="width: ${absolute_percentage}%; background-color: ${absColor};"></div>
+          </div>
+          <div class="stat-bar" title="Relative (vs own BST)">
+            <div class="stat-value" style="width: ${relative_percentage}%; background-color: ${relColor};"></div>
           </div>
         </div>
       `;
@@ -471,13 +469,15 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
     };
   
     const statsTableRows = pokemon.stats
-      .map(stat => `
+      .map(stat => {
+        const sum_stats = pokemon.stats.reduce((acc, stat) => acc + stat.value, 0);
+        return `
         <tr>
           <td class="attribute abilities-text">${(stat.name === 'hp') ? 'HP': stat.name.charAt(0).toUpperCase() + stat.name.slice(1)}:</td>
           <td class="value abilities-text">${stat.value}</td>
-          <td class="value abilities-bar">${getStatBar(stat.value, 255)}</td>
-        </tr>`)
-      .join('\n');
+          <td class="value abilities-bar">${getStatBar(stat.value, sum_stats, 255)}</td>
+        </tr>`;
+      }).join('\n');
   
     const descriptionsSelect = pokemon.pokedexDescriptions
       .map(description => `
