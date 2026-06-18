@@ -219,6 +219,23 @@ li {
   text-transform: capitalize;
 }
 
+.compare-pokemon .cry-button {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  color: white;
+}
+
+.compare-pokemon .cry-button:hover {
+  transform: scale(1.05);
+}
+
 .vs {
   font-size: 24px;
   font-weight: bold;
