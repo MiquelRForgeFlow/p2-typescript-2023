@@ -1,3 +1,5 @@
+import { fetchJson } from "./fetch-json";
+
 interface DamageRelation {
   double_damage_from: { name: string }[];
   half_damage_from: { name: string }[];
@@ -65,10 +67,8 @@ export class PokemonDetails {
 
   export const loadPokemonDetails = async (id: number): Promise<PokemonDetails | undefined> => {
     try {
-      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-      const data = await response.json();
-      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
-      const speciesData = await speciesResponse.json();
+      const data = await fetchJson(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      const speciesData = await fetchJson(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
       const imageUrl = data.sprites.front_default;
       const officialArtworkUrl = data.sprites.other["official-artwork"].front_default;
       const officialArtworkShinyUrl = data.sprites.other["official-artwork"].front_shiny || officialArtworkUrl;
@@ -155,8 +155,7 @@ export class PokemonDetails {
   async function getAbilitiesDescriptions(abilities: { ability: { url: string } }[]): Promise<string[]> {
     const descriptions = await Promise.all(
       abilities.map(async ({ ability: { url } }) => {
-        const response = await fetch(url);
-        const data = await response.json();
+        const data = await fetchJson(url);
         const englishDescription = data.effect_entries.find((entry: { language: { name: string } }) => entry.language.name === 'en');
         return englishDescription ? englishDescription.effect : 'No description available';
       })
@@ -165,8 +164,7 @@ export class PokemonDetails {
   }
 
   async function getPokemonDescriptions(pokemonId: number): Promise<DexDescription[]> {
-    const response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
-    const data = await response.json();
+    const data = await fetchJson(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}`);
     const englishFlavorTextEntries = data.flavor_text_entries.filter((entry: { language: { name: string } }) => entry.language.name === 'en');
     if (englishFlavorTextEntries.length > 0) {
       const pokedexDescriptions: DexDescription[] = englishFlavorTextEntries.map((entry: { flavor_text: string; version: { name: string } }) => {
@@ -187,14 +185,12 @@ export class PokemonDetails {
     superResistantTo: string[];
     immuneTo: string[];
   }> {
-    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
-    const data = await response.json();
+    const data = await fetchJson(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
     const types = data.types.map((type: { type: { url: string } }) => type.type);
 
     const damageRelations: DamageRelation[] = await Promise.all(types.map(async (type: { url: string }) => {
-      const response = await fetch(type.url);
-      const data = await response.json();
-      return data.damage_relations;
+      const typeData = await fetchJson(type.url);
+      return typeData.damage_relations;
     }));
 
     const pokemonTypes = [
@@ -255,16 +251,14 @@ export class PokemonDetails {
     if (!evolutionChainUrl) return [];
     
     try {
-      const response = await fetch(evolutionChainUrl);
-      const data = await response.json();
+      const data = await fetchJson(evolutionChainUrl);
       
       const processChain = async (chain: any): Promise<EvolutionStep> => {
         const speciesName = chain.species.name;
         const speciesUrl = chain.species.url;
         const speciesId = parseInt(speciesUrl.split('/').filter(Boolean).pop());
         
-        const pokemonResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
-        const pokemonData = await pokemonResponse.json();
+        const pokemonData = await fetchJson(`https://pokeapi.co/api/v2/pokemon/${speciesId}`);
         const imageUrl = pokemonData.sprites.other["official-artwork"].front_default;
         
         let trigger = '';

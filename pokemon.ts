@@ -1,3 +1,5 @@
+import { fetchJson } from "./fetch-json";
+
 export class Pokemon {
     constructor(
       public id: number,
@@ -21,12 +23,9 @@ export class Pokemon {
     const pokemons: Array<Pokemon> = [];
 
     for (let i = 1; i <= n; i++) {
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
-        const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${i}`);
-
-        if (response.ok && speciesResponse.ok) {
-            const data = await response.json();
-            const speciesData = await speciesResponse.json();
+        try {
+            const data = await fetchJson(`https://pokeapi.co/api/v2/pokemon/${i}`);
+            const speciesData = await fetchJson(`https://pokeapi.co/api/v2/pokemon-species/${i}`);
 
             const imageUrl = data.sprites.front_default;
             const officialArtworkUrl = data.sprites.other["official-artwork"].front_default;
@@ -40,8 +39,8 @@ export class Pokemon {
             const generation = speciesData.generation?.name || 'unknown';
 
             pokemons.push(new Pokemon(i, name, codename, imageUrl, types, is_baby, is_legendary, is_mythical, officialArtworkUrl, generation));
-        } else {
-            console.error(`Error fetching data for Pokémon ID ${i}: ${response.statusText}`);
+        } catch (error) {
+            console.error(`Error fetching data for Pokémon ID ${i}:`, error);
         }
     }
     return pokemons;
