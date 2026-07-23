@@ -1,5 +1,9 @@
 import { cachedFetchJson } from "./fetch-cache";
+import { mapWithConcurrency } from "./concurrency";
 import { regionOf, ensureRegionsLoaded } from "./regions";
+
+// How many species to process at once (each still fans out its own requests).
+const CONCURRENCY = 10;
 
 // An alternate form of a species, shown in the index when "All forms" is on.
 // `suffix` is the form identifier used as the detail-page URL hash so the target
@@ -36,8 +40,6 @@ export class Pokemon {
   
   export const loadPokemons = async (n: number) => {
     await ensureRegionsLoaded();
-    const pokemons: Array<Pokemon> = [];
-
     // Map each version group to its generation (forms are introduced in a
     // specific version group, so a form's generation can differ from its
     // species' — e.g. Galarian Meowth is Gen VIII). Built once, up front.
@@ -49,7 +51,8 @@ export class Pokemon {
       } catch (e) { /* leave gaps; forms fall back to their species' generation */ }
     }
 
-    for (let i = 1; i <= n; i++) {
+    const ids = Array.from({ length: n }, (_, k) => k + 1);
+    const loaded = await mapWithConcurrency(ids, CONCURRENCY, async (i): Promise<Pokemon | null> => {
         try {
             const data = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon/${i}`);
             const speciesData = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon-species/${i}`);
@@ -102,10 +105,11 @@ export class Pokemon {
               }
             }))).filter(Boolean) as PokemonForm[];
 
-            pokemons.push(pokemon);
+            return pokemon;
         } catch (e) {
             console.error(`Error fetching data for Pokémon ID ${i}:`, e);
+            return null;
         }
-    }
-    return pokemons;
+    });
+    return loaded.filter(Boolean) as Pokemon[];
 };

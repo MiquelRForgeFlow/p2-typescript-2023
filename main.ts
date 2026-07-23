@@ -1,6 +1,7 @@
 import { writeFile } from "fs/promises";
 import { loadPokemons, Pokemon } from "./pokemon";
 import { loadPokemonDetails, PokemonDetails } from "./pokemon-detail"
+import { mapWithConcurrency } from "./concurrency";
 import { regionOf, ensureRegionsLoaded, REGION_TOKENS } from "./regions";
 import { ensureTypesLoaded, ALL_TYPES } from "./types";
 
@@ -1586,15 +1587,15 @@ async function generateSite() {
   const indexHtml = renderPokemonIndex(pokemons);
   await writeFile("index.html", indexHtml);
 
-  for (const pokemon of pokemons) {
+  await mapWithConcurrency(pokemons, 10, async (pokemon) => {
     const pokemonDetail = await loadPokemonDetails(pokemon.id);
     if (!pokemonDetail) {
       console.warn(`Failed to load details for Pokémon with ID ${pokemon.id}.`);
-      continue;
+      return;
     }
     const detailHtml = renderPokemonDetail(pokemonDetail, 1025);
     await writeFile(`${String(pokemonDetail.id).padStart(4, '0')}_details.html`, detailHtml);
-  }
+  });
 }
 
 export { renderPokemonIndex, renderPokemonDetail, generateSite };
