@@ -183,3 +183,6 @@ users.html
 
 #js generated with tsc
 *.js
+
+#html generated with the generator
+*.html
