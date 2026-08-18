@@ -123,8 +123,11 @@ export class PokemonDetails {
       const data = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon/${id}`);
       const speciesData = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
       const imageUrl = data.sprites.front_default;
-      const officialArtworkUrl = data.sprites.other["official-artwork"].front_default;
-      const officialArtworkShinyUrl = data.sprites.other["official-artwork"].front_shiny || officialArtworkUrl;
+      // Prefer official artwork; fall back to the game sprite if absent.
+      const officialArtworkUrl = data.sprites.other["official-artwork"].front_default || data.sprites.front_default;
+      // Shiny official artwork, else the shiny sprite; empty when there's no
+      // shiny at all (so the Shiny toggle can be hidden).
+      const officialArtworkShinyUrl = data.sprites.other["official-artwork"].front_shiny || data.sprites.front_shiny || '';
       const cryUrl = data.cries?.latest || '';
       const height = data.height;
       const weight = data.weight;
