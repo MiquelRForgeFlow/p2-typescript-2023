@@ -27,7 +27,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
       <li style="display: none;">
         <a class="pokemon-card form-variant" href="${dexNo}_details.html#${form.suffix}" data-types='${JSON.stringify(form.types)}' data-baby='${pokemon.is_baby}' data-legendary='${pokemon.is_legendary}' data-mythical='${pokemon.is_mythical}' data-generation='${form.generation}' data-id='${form.id}' data-name='${form.name}' data-formkind='${form.kind}' style="background-image: ${typeGradient(form.types)};">
           <div class="pokemon-id">#${dexNo}</div>
-          <img class="lazyload" data-src="${form.imageUrl}" alt="${form.name}" />
+          <img class="lazyload" data-src="${form.imageUrl}" data-default-img="${pokemon.officialArtworkUrl}" alt="${form.name}" />
           <h2>${form.name}</h2>
         </a>
       </li>`).join('\n');
@@ -51,6 +51,32 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5418523060607609" crossorigin="anonymous"></script>
       <link rel="canonical" href="https://pokequickdex.vercel.app" />
       <script defer src="/_vercel/insights/script.js"></script>
+      <script>
+        // On image error, retry the official artwork a few times (transient
+        // github hiccups) before falling back to Dream World, then the sprite.
+        // Capture phase, so it catches cards loading before other scripts run.
+        document.addEventListener('error', function (ev) {
+          var img = ev.target;
+          if (!img || img.tagName !== 'IMG') return;
+          var src = img.src.split('?')[0];
+          if (src.indexOf('/other/official-artwork/') !== -1) {
+            var tries = +(img.getAttribute('data-oa-retry') || 0);
+            if (tries < 3) {
+              img.setAttribute('data-oa-retry', tries + 1);
+              setTimeout(function () { img.src = src + '?r=' + (tries + 1); }, 300 * (tries + 1));
+            } else if (src.indexOf('/official-artwork/shiny/') !== -1) {
+              img.src = src.replace('/other/official-artwork/', '/');            // shiny: go to shiny sprite
+            } else {
+              img.src = src.replace('/other/official-artwork/', '/other/dream-world/').replace(/\\.png$/, '.svg');  // -> Dream World
+            }
+          } else if (src.indexOf('/other/dream-world/') !== -1) {
+            img.src = src.replace('/other/dream-world/', '/').replace(/\\.svg$/, '.png');   // -> game sprite
+          } else {
+            var di = img.getAttribute('data-default-img');                       // -> default form's image
+            if (di && di !== src) { img.removeAttribute('data-default-img'); img.setAttribute('data-oa-retry', 0); img.src = di; }
+          }
+        }, true);
+      </script>
     </head>
     <body>
       <div class="header-container">
@@ -276,14 +302,14 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             compareResults.innerHTML = \`
               <div class="compare-header">
                 <div class="compare-pokemon">
-                  <img id="compare-img-1" src="\${pokemon1.sprites.other['official-artwork'].front_default}" alt="\${pokemon1.name}">
+                  <img id="compare-img-1" src="\${pokemon1.sprites.other['official-artwork'].front_default || pokemon1.sprites.front_default}" alt="\${pokemon1.name}">
                   <h3>\${n1}</h3>
                   \${buildFormSelect(species1.varieties, species1.name, 'compare-form-1', pokemon1.name)}
                   \${cry1 ? \`<div class="compare-cry"><audio id="compare-cry-1" src="\${cry1}"></audio><button class="cry-button" onclick="const a=document.getElementById('compare-cry-1');a.currentTime=0;a.play();">🔊 Cry</button></div>\` : ''}
                 </div>
                 <div class="vs">VS</div>
                 <div class="compare-pokemon">
-                  <img id="compare-img-2" src="\${pokemon2.sprites.other['official-artwork'].front_default}" alt="\${pokemon2.name}">
+                  <img id="compare-img-2" src="\${pokemon2.sprites.other['official-artwork'].front_default || pokemon2.sprites.front_default}" alt="\${pokemon2.name}">
                   <h3>\${n2}</h3>
                   \${buildFormSelect(species2.varieties, species2.name, 'compare-form-2', pokemon2.name)}
                   \${cry2 ? \`<div class="compare-cry"><audio id="compare-cry-2" src="\${cry2}"></audio><button class="cry-button" onclick="const a=document.getElementById('compare-cry-2');a.currentTime=0;a.play();">🔊 Cry</button></div>\` : ''}
@@ -299,7 +325,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             if (sel1) {
               sel1.addEventListener('change', async function() {
                 currentP1 = await fetch(this.value).then(r => r.json());
-                document.getElementById('compare-img-1').src = currentP1.sprites.other['official-artwork'].front_default;
+                document.getElementById('compare-img-1').src = currentP1.sprites.other['official-artwork'].front_default || currentP1.sprites.front_default;
                 const cryEl = document.getElementById('compare-cry-1');
                 if (cryEl && currentP1.cries?.latest) cryEl.src = currentP1.cries.latest;
                 updateTable();
@@ -309,7 +335,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             if (sel2) {
               sel2.addEventListener('change', async function() {
                 currentP2 = await fetch(this.value).then(r => r.json());
-                document.getElementById('compare-img-2').src = currentP2.sprites.other['official-artwork'].front_default;
+                document.getElementById('compare-img-2').src = currentP2.sprites.other['official-artwork'].front_default || currentP2.sprites.front_default;
                 const cryEl = document.getElementById('compare-cry-2');
                 if (cryEl && currentP2.cries?.latest) cryEl.src = currentP2.cries.latest;
                 updateTable();
@@ -511,7 +537,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
       return `
         <a href="${String(evo.id).padStart(4, '0')}_details.html${evo.hash ? `#${evo.hash}` : ''}" data-hash="${evo.hash || ''}" class="evo-step ${isCurrentSpecies && !evo.hash ? 'current' : ''}" ${isCurrentSpecies ? 'data-base="1"' : ''}>
           ${evo.hasForms ? `<span class="evo-forms-badge" title="Has other forms"${isCurrentSpecies ? ' style="display:none;"' : ''}>+</span>` : ''}
-          <img src="${evo.imageUrl}" alt="${evo.name}" />
+          <img src="${evo.imageUrl}" data-default-img="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png" alt="${evo.name}" />
           <span>${evo.name}</span>
         </a>`;
     };
@@ -898,7 +924,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
                   label = formPart.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
                 }
                 return `<button type="button" class="form-step ${v.is_default ? 'active' : ''}" data-url="${v.url}" data-region="${evoSuffixOf(v.name)}">
-                  <img src="${artwork}" alt="${label}" loading="lazy" />
+                  <img src="${artwork}" data-default-img="${pokemon.officialArtworkUrl}" alt="${label}" loading="lazy" />
                   <span>${label}</span>
                 </button>`;
               }).join('')}
@@ -984,7 +1010,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
             <img id="pokemon-artwork" src="${pokemon.officialArtworkUrl}" alt="${pokemon.name}" data-normal="${pokemon.officialArtworkUrl}" data-shiny="${pokemon.officialArtworkShinyUrl}" data-animated="${pokemon.animatedSpriteUrl}" />
             <p class="pokemon-genus">${pokemon.genus}</p>
             <div class="image-controls">
-              <button id="shiny-toggle" class="shiny-toggle" title="Toggle Shiny">✨ Shiny</button>
+              <button id="shiny-toggle" class="shiny-toggle" title="Toggle Shiny"${pokemon.officialArtworkShinyUrl ? '' : ' style="display:none;"'}>✨ Shiny</button>
               ${pokemon.animatedSpriteUrl ? `<button id="animated-toggle" class="animated-toggle" title="Toggle Animated Sprite">🎬 Animated</button>` : ''}
               ${pokemon.cryUrl ? `<button id="cry-button" class="cry-button" title="Play Cry">🔊 Cry</button>` : ''}
             </div>
@@ -1265,6 +1291,7 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
 
             const BASE_NAME = ${JSON.stringify(pokemon.name)};
             const BASE_CODENAME = ${JSON.stringify(pokemon.codename)};
+            const DEFAULT_IMG = ${JSON.stringify(pokemon.officialArtworkUrl)};
             // Species-level Pokédex entries (shown for the default form; a form's
             // own entries, when it has any, replace these — see loadForm).
             const SPECIES_DESCRIPTIONS = ${JSON.stringify(pokemon.pokedexDescriptions)};
@@ -1296,9 +1323,12 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
               const res = await fetch(url);
               const data = await res.json();
 
-              // Artwork
-              const normalUrl = data.sprites.other['official-artwork'].front_default || data.sprites.front_default;
-              const shinyUrl = data.sprites.other['official-artwork'].front_shiny || normalUrl;
+              // Artwork: official artwork -> Dream World -> game sprite -> the
+              // default form's image (some variants have no image of their own).
+              const dreamUrl = data.sprites.other['dream_world'] && data.sprites.other['dream_world'].front_default;
+              const normalUrl = data.sprites.other['official-artwork'].front_default || dreamUrl || data.sprites.front_default || DEFAULT_IMG;
+              // Shiny official artwork, else the shiny sprite; empty = no shiny.
+              const shinyUrl = data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny || '';
               const animatedUrl = data.sprites.versions?.['generation-v']?.['black-white']?.animated?.front_default || '';
               const artwork = document.getElementById("pokemon-artwork");
               artwork.src = normalUrl;
@@ -1308,7 +1338,8 @@ function renderPokemonIndex(pokemons: Array<Pokemon>): string {
               isShiny = false;
               isAnimated = false;
               const shinyToggleBtn = document.getElementById("shiny-toggle");
-              if (shinyToggleBtn) { shinyToggleBtn.classList.remove("active"); shinyToggleBtn.textContent = "✨ Shiny"; }
+              // Hide the Shiny toggle for forms with no shiny artwork/sprite.
+              if (shinyToggleBtn) { shinyToggleBtn.classList.remove("active"); shinyToggleBtn.textContent = "✨ Shiny"; shinyToggleBtn.style.display = shinyUrl ? "" : "none"; }
 
               // Title
               const titleEl = document.getElementById("pokemon-title-name");
@@ -1517,6 +1548,33 @@ function head(title: string): string {
   <link rel="stylesheet" href="css/pokemon_styles.css">
   <script defer src="/_vercel/insights/script.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" />
+  <script>
+    // On image error, retry the official artwork a few times (transient github
+    // hiccups) before falling back to Dream World, then the sprite. In <head>,
+    // capture phase, to catch images that load before the main scripts run.
+    document.addEventListener('error', function (ev) {
+      var img = ev.target;
+      if (!img || img.tagName !== 'IMG') return;
+      var src = img.src.split('?')[0];
+      if (src.indexOf('/other/official-artwork/') !== -1) {
+        // Retry official artwork a few times (transient github hiccups), then step down.
+        var tries = +(img.getAttribute('data-oa-retry') || 0);
+        if (tries < 3) {
+          img.setAttribute('data-oa-retry', tries + 1);
+          setTimeout(function () { img.src = src + '?r=' + (tries + 1); }, 300 * (tries + 1));
+        } else if (src.indexOf('/official-artwork/shiny/') !== -1) {
+          img.src = src.replace('/other/official-artwork/', '/');            // shiny: no Dream World, go to shiny sprite
+        } else {
+          img.src = src.replace('/other/official-artwork/', '/other/dream-world/').replace(/\\.png$/, '.svg');  // -> Dream World
+        }
+      } else if (src.indexOf('/other/dream-world/') !== -1) {
+        img.src = src.replace('/other/dream-world/', '/').replace(/\\.svg$/, '.png');   // -> game sprite
+      } else {
+        var di = img.getAttribute('data-default-img');                       // sprite failed too -> the default form's image
+        if (di && di !== src) { img.removeAttribute('data-default-img'); img.setAttribute('data-oa-retry', 0); img.src = di; }
+      }
+    }, true);
+  </script>
 </head>`;
 }
 

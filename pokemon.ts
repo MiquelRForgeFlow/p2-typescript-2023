@@ -54,8 +54,9 @@ export class Pokemon {
             const data = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon/${i}`);
             const speciesData = await cachedFetchJson(`https://pokeapi.co/api/v2/pokemon-species/${i}`);
 
-            const imageUrl = data.sprites.front_default;
+            // Priority: official artwork -> Dream World -> game sprite.
             const officialArtworkUrl = data.sprites.other["official-artwork"].front_default;
+            const imageUrl = officialArtworkUrl || data.sprites.other["dream_world"]?.front_default || data.sprites.front_default;
             const types = data.types.map((type: any) => type.type.name);
             const is_baby = speciesData.is_baby;
             const is_legendary = speciesData.is_legendary;
@@ -84,12 +85,15 @@ export class Pokemon {
                 // A form is regional if its name contains a region token, else a
                 // battle-only form, else a plain "other" form.
                 const kind = fd.is_battle_only ? 'battle' : (regionOf(v.pokemon.name) !== 'default' ? 'regional' : 'other');
+                const vId = parseInt(v.pokemon.url.split('/').filter(Boolean).pop());
                 return {
-                  id: parseInt(v.pokemon.url.split('/').filter(Boolean).pop()),
+                  id: vId,
                   name: `${name} (${titleCase(suffix)})`,
                   suffix,
                   types: fd.types.map((t: any) => t.type.name),
-                  imageUrl: fd.sprites?.front_default || imageUrl,
+                  // Official artwork by default; the page's <head> error handler
+                  // falls back to the game sprite for forms that lack it.
+                  imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${vId}.png`,
                   generation: (vg && vgToGen[vg]) || generation,
                   kind,
                 };
